@@ -1525,7 +1525,7 @@ def get_monitor_failures_journal_testcase(Filter_): # pragma: systemd no cover
 			if not journal: # pragma: no cover
 				raise unittest.SkipTest("systemd python interface not available")
 			# no files yet in temp-path:
-			self.assertFalse(_globJournalFiles(None, tmp))
+			self.assertFalse(_globJournalFiles(None, tmp, ignoreEmpty=False))
 			# test against temp-path, shall ignore all rotated files:
 			tsysjrnl = os.path.join(tmp, 'system.journal')
 			tusrjrnl = os.path.join(tmp, 'user-%s.journal' % os.getuid())
@@ -1534,9 +1534,11 @@ def get_monitor_failures_journal_testcase(Filter_): # pragma: systemd no cover
 			touch(tusrjrnl);
 			touch(os.path.join(tmp, 'system@test-rotated.journal'));
 			touch(os.path.join(tmp, 'user-%s@test-rotated.journal' % os.getuid()));
-			self.assertSortedEqual(_globJournalFiles(None, tmp), {tsysjrnl, tusrjrnl})
-			self.assertSortedEqual(_globJournalFiles(journal.SYSTEM_ONLY, tmp), {tsysjrnl})
-			self.assertSortedEqual(_globJournalFiles(journal.CURRENT_USER, tmp), {tusrjrnl})
+			self.assertSortedEqual(_globJournalFiles(None, tmp, ignoreEmpty=False), {tsysjrnl, tusrjrnl})
+			self.assertSortedEqual(_globJournalFiles(journal.SYSTEM_ONLY, tmp, ignoreEmpty=False), {tsysjrnl})
+			self.assertSortedEqual(_globJournalFiles(journal.CURRENT_USER, tmp, ignoreEmpty=False), {tusrjrnl})
+			# because files are empty it would cause None (ignored all files):
+			self.assertFalse(_globJournalFiles(None, tmp, ignoreEmpty=True))
 
 		def testJournalFilesArg(self):
 			# retrieve current system journal path

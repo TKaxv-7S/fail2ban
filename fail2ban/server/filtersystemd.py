@@ -53,22 +53,28 @@ def _getSystemdPath(path):
 	_systemdPathCache.set(path, p)
 	return p
 
-def _globJournalFiles(flags=None, path=None):
+def _globJournalFiles(flags=None, path=None, ignoreEmpty=True):
 	"""Get journal files without rotated files."""
 	filesSet = set()
 	_join = os.path.join
+	if ignoreEmpty:
+		def _glob_valid(glob_pattern):
+			return {f for f in glob(glob_pattern) if os.path.isfile(f) and os.path.getsize(f) > 0}
+	else:
+		def _glob_valid(glob_pattern):
+			return set(glob(glob_pattern))
 	def _addJF(filesSet, p, flags):
 		"""add journal files to set corresponding path and flags (without rotated *@*.journal)"""
 		# system journal:
 		if (flags is None) or (flags & journal.SYSTEM_ONLY):
-			filesSet |= set(glob(_join(p,'system.journal')))
+			filesSet |= _glob_valid(_join(p,'system.journal'))
 		# current user-journal:
 		if (flags is not None) and (flags & journal.CURRENT_USER):
 			uid = os.geteuid()
-			filesSet |= set(glob(_join(p,('user-%s.journal' % uid))))
+			filesSet |= _glob_valid(_join(p,('user-%s.journal' % uid)))
 		# all local journals:
 		if (flags is None) or not (flags & (journal.SYSTEM_ONLY|journal.CURRENT_USER)):
-			filesSet |= set(glob(_join(p,'*.journal'))) - set(glob(_join(p,'*@*.journal')))
+			filesSet |= _glob_valid(_join(p,'*.journal')) - set(glob(_join(p,'*@*.journal')))
 	if path:
 		# journals relative given path only:
 		_addJF(filesSet, path, flags)
